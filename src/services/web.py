@@ -3,6 +3,7 @@ from flask_sqlalchemy import SQLAlchemy
 import os
 from enum import Enum
 import sys
+import datetime
 
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = os.environ['PG_CONNECTION_URI']
@@ -13,11 +14,44 @@ from sqlalchemy.dialects.postgresql import ENUM
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.dialects.postgresql import TIMESTAMP
 
+from sqlalchemy import text
+
 class Status(str, Enum):
     pending = 'pending'
     processing = 'processing'
     completed = 'completed'
     failed = 'failed'
+
+class PhotoThumbnail(db.Model):
+    __tablename__ = 'photo_thumbnails'
+
+    uuid = db.Column(UUID(as_uuid=True), primary_key = True, server_default=text("gen_random_uuid()"))
+    photo_uuid = db.Column(UUID(as_uuid=True))
+    width = db.Column(db.SmallInteger)
+    height = db.Column(db.SmallInteger)
+    url = db.Column(db.Text)
+    created_at = db.Column(TIMESTAMP(), default=datetime.datetime.utcnow)
+
+    # def __init__(self, photo_uuid, width, height, url):
+    #     # self.uuid = uuid
+    #     self.photo_uuid = photo_uuid
+    #     self.width = width
+    #     self.height = height
+    #     self.url = url
+    #     # self.created_at = created_at
+
+    def __repr__(self):
+        return '<id {}>'.format(self.uuid)
+
+    def serialize(self):
+        return {
+            'uuid': self.uuid, 
+            'photo_uuid': self.photo_uuid,
+            'width': self.width,
+            'height': self.height,
+            'url': self.url,
+            'created_at':self.created_at
+        }
 
 class Photo(db.Model):
     __tablename__ = 'photos'
@@ -102,6 +136,11 @@ def handle_message(body, message):
     im.thumbnail(size)
     orgfile = os.path.basename(urlparse(photo.url).path)
     im.save("/waldo-app-thumbs/" + orgfile, "JPEG")
+
+    thumbnail = PhotoThumbnail(photo_uuid=photo.uuid, width=320, 
+      height=320, url="/waldo-app-thumbs/" + orgfile)
+    db.session.add(thumbnail)
+    db.session.commit()
 
     photo.status=Status.completed
     db.session.commit()
