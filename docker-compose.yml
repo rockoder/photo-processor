@@ -10,7 +10,7 @@ services:
       PG_CONNECTION_URI: ${PG_CONNECTION_URI}
       AMQP_URI: ${AMQP_URI}
     volumes:
-      - /waldo-app-thumbs
+      - ./waldo-app-thumbs:/waldo-app-thumbs
     depends_on:
       - postgres
       - rabbitmq

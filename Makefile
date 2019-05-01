@@ -15,3 +15,6 @@ db-schema:
 
 psql:
 	docker exec -it postgres psql $(PG_CONNECTION_URI)
+
+db-select:
+	docker exec -i postgres psql $(PG_CONNECTION_URI) -t < scripts/select.sql
